@@ -224,7 +224,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title
-st.markdown('<div class="main-header">🏛️ Parliament Bill Auditor</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🏛️ Parliament Bill Auditor 🏛️</div>', unsafe_allow_html=True)
 
 # Initialize session state
 if "analysis" not in st.session_state: 
@@ -571,6 +571,7 @@ Provide a clear, concise answer. If the information is not in the analysis, say 
                     answer = f"Error generating answer: {str(e)}"
             
             st.chat_message("assistant").write(answer)
+
 
 
 
