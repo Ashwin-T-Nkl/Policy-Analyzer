@@ -7,9 +7,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from langchain_groq import ChatGroq
 
-# ==================== FUNCTION DEFINITIONS ====================
+#========== VALIDATION ==========
 
-# ========== KEEPING FIRST CODE'S EXCELLENT VALIDATION ==========
 BILL_KEYWORDS = [
     "bill", "act", "parliament", "lok sabha", "rajya sabha", "gazette", 
     "legislative", "enacted", "minister", "ministry", "objects and reasons",
@@ -18,14 +17,14 @@ BILL_KEYWORDS = [
 ]
 
 REAL_BILL_PATTERNS = [
-    r"a\s+bill\s+to\s+",  # "A Bill to regulate..."
-    r"bill\s+no\.?\s*\d+",  # "Bill No. 123"
-    r"as\s+passed\s+by\s+(lok|rajya)\s+sabha",  # "As passed by Lok Sabha"
-    r"introduced\s+in\s+(lok|rajya)\s+sabha",  # "Introduced in Rajya Sabha"
-    r"minister\s+of\s+",  # "Minister of Finance"
-    r"sponsored\s+by",  # "Sponsored by Shri/Mr./Dr."
-    r"statement\s+of\s+objects\s+and\s+reasons",  # Standard bill section
-    r"financial\s+memorandum",  # Standard bill section
+    r"a\s+bill\s+to\s+",  
+    r"bill\s+no\.?\s*\d+", 
+    r"as\s+passed\s+by\s+(lok|rajya)\s+sabha", 
+    r"introduced\s+in\s+(lok|rajya)\s+sabha", 
+    r"minister\s+of\s+", 
+    r"sponsored\s+by", 
+    r"statement\s+of\s+objects\s+and\s+reasons",  
+    r"financial\s+memorandum",  
 ]
 
 EXAMPLE_PATTERNS = [
@@ -34,29 +33,26 @@ EXAMPLE_PATTERNS = [
     r"sample\s+text",
     r"for\s+demonstration\s+purposes",
     r"carriage\s+of\s+goods",
-    r"question\s*:.*answer\s*:",  # Q&A format
+    r"question\s*:.*answer\s*:", 
 ]
 
 def is_valid_government_doc(text):
-    """
-    EXCELLENT VALIDATION from first code - distinguishes real bills from examples
-    Returns: (is_valid, reason_message, bill_type)
-    """
+
     text_lower = text.lower()
     
     if len(text.strip()) < 500:
         return False, "Document too short (less than 500 characters)", "invalid"
     
-    # Check for example/test documents FIRST
+    # Checking example/test documents
     for pattern in EXAMPLE_PATTERNS:
         if re.search(pattern, text_lower, re.IGNORECASE):
             return False, "This appears to be an example/test document, not an actual parliamentary bill", "example"
     
-    # Check for Q&A format
+    # Checking Q&A format
     if re.search(r"question\s*:.*answer\s*:", text_lower, re.IGNORECASE | re.DOTALL):
         return False, "Document appears to contain instructional Q&A format, not a bill", "example"
     
-    # Check for strong indicators of real bills
+    # Checking strong indicators of real bills
     strong_indicators = 0
     for pattern in REAL_BILL_PATTERNS:
         if re.search(pattern, text_lower, re.IGNORECASE):
@@ -80,7 +76,6 @@ def is_valid_government_doc(text):
         return False, f"Document doesn't appear to be a parliamentary bill", "invalid"
 
 def extract_bill_proposer(text):
-    """Extract bill proposer/sponsor information"""
     patterns = [
         r"sponsored\s+by\s+([^.]+?\.)",
         r"introduced\s+by\s+([^.]+?\.)",
@@ -97,13 +92,12 @@ def extract_bill_proposer(text):
     
     return None
 
-# ========== USING SECOND CODE'S BETTER EXTRACTION ==========
+# ========== EXTRACTION ==========
+
 def extract_section(section_name, analysis_text):
-    """Improved section extraction from second code"""
     if not analysis_text or not section_name:
         return "No analysis available."
     
-    # Define section headers
     section_headers = {
         "SECTOR": "SECTOR:",
         "OBJECTIVE": "OBJECTIVE:",
@@ -119,7 +113,6 @@ def extract_section(section_name, analysis_text):
     if not header:
         return f"Section '{section_name}' not found."
     
-    # Find the header
     header_start = analysis_text.find(header)
     if header_start == -1:
         # Try variations
@@ -156,8 +149,9 @@ def extract_section(section_name, analysis_text):
     
     return content if content else "No content for this section."
 
+#========== GENERATE PDF ==========
+
 def generate_pdf(text):
-    """Generate PDF from text"""
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     y = 800
@@ -181,13 +175,12 @@ def generate_pdf(text):
 
 # ==================== STREAMLIT APP ====================
 
-# Page config
+
 st.set_page_config(page_title="Parliament Bill Auditor", layout="wide")
 
-# Custom CSS for larger tab names and styling
+
 st.markdown("""
 <style>
-    /* Larger tab names */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
     }
@@ -198,26 +191,22 @@ st.markdown("""
         padding: 15px 25px !important;
     }
     
-    /* Remove validation success message styling */
     .stSuccess {
         display: none;
     }
     
-    /* Style for bullet points */
     .bullet-point {
         font-size: 16px;
         margin-bottom: 8px;
     }
-    
-    /* Center the title */
+
     .main-header {
         text-align: center;
         font-size: 36px;
         font-weight: bold;
         margin-bottom: 30px;
     }
-    
-    /* Style for section headers */
+
     .section-header {
         font-size: 28px;
         font-weight: bold;
@@ -265,7 +254,7 @@ if uploaded_file:
         st.session_state.validation_status = None
         st.session_state.bill_proposer = None
         
-        # Extract text
+        # Extracting text
         reader = PdfReader(uploaded_file)
         raw_text = ""
         for page in reader.pages:
@@ -278,39 +267,30 @@ if uploaded_file:
         
         st.session_state.full_text = raw_text
         
-        # Validate document (USING FIRST CODE'S VALIDATION)
+        # Validating document 
         is_valid, message, bill_type = is_valid_government_doc(raw_text)
         st.session_state.validation_status = (is_valid, message)
         st.session_state.bill_type = bill_type
         
-        # Extract proposer
+        # Extracting proposer
         if is_valid and bill_type != "example":
             proposer = extract_bill_proposer(raw_text[:5000])
             if proposer:
                 st.session_state.bill_proposer = proposer
     
-    # Display validation status - only show errors, not successes
+    # Display validation status if failure
     if st.session_state.validation_status:
         is_valid, message = st.session_state.validation_status
         
         if not is_valid:
             st.error(f"❌ {message}")
-            st.warning("""
-            **Please upload an actual parliamentary bill. Real bills usually contain:**
-            - "A BILL TO..." at the beginning
-            - Bill number (e.g., Bill No. 123 of 2024)
-            - Mentions of "Lok Sabha" or "Rajya Sabha"
-            - "Statement of Objects and Reasons" section
-            - Sponsor/Minister name
-            - Date of introduction
-            """)
+            st.warning(""" **Please upload an actual parliamentary bill. Real bills usually contain:** """)
             
             # Option to force analysis
             with st.expander("⚠️ Force analysis anyway (for testing)"):
                 force_analyze = st.checkbox("I understand this may not be a real bill, proceed anyway")
                 if not force_analyze:
                     st.stop()
-        # If valid, proceed silently (no success message)
 
     # Check API key
     if "GROQ_API_KEY" not in os.environ:
@@ -318,17 +298,13 @@ if uploaded_file:
         st.stop()
 
     # Initialize LLM
-    llm = ChatGroq(
-        model_name="llama-3.3-70b-versatile", 
-        temperature=0.1, 
-        max_tokens=3500
-    )
+    llm = ChatGroq(model_name="llama-3.3-70b-versatile", temperature=0.1, max_tokens=3500)
 
     # Generate Analysis Button - Green button
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Custom CSS for green button
+        # Green button
         st.markdown("""
         <style>
         .stButton > button {
@@ -350,74 +326,74 @@ if uploaded_file:
         
         if st.button("🔍 GENERATE ANALYSIS", use_container_width=True):
             with st.spinner("Analyzing document... This may take a moment."):
-                # USING SECOND CODE'S BETTER PROMPT FORMAT
+                # ==================== PROMPT ====================
                 prompt = f"""
-You are a Policy Analyst. Analyze this parliamentary bill for students.
+                    You are a Policy Analyst. Analyze this parliamentary bill for students.
 
-IMPORTANT: Use EXACTLY these section headers and format:
+                    IMPORTANT: Use EXACTLY these section headers and format:
 
-SECTOR:
-- [One sector only: Agriculture, Finance, Education, Healthcare, Technology, Environment, Defence, Transport, etc.]
+                    SECTOR:
+                    - [One sector only: Agriculture, Finance, Education, Healthcare, Technology, Environment, Defence, Transport, etc.]
 
-OBJECTIVE:
-- [Bullet point 1]
-- [Bullet point 2]
-- [Bullet point 3]
-- [Bullet point 4]
+                    OBJECTIVE:
+                    - [Bullet point 1]
+                    - [Bullet point 2]
+                    - [Bullet point 3]
+                    - [Bullet point 4]
 
-DETAILED SUMMARY:
-- [Key provision 1]
-- [Key provision 2]
-- [Key provision 3]
-- [Key provision 4]
-- [Key provision 5]
-- [Key provision 6]
-- [Key provision 7]
-- [Key provision 8]
-- [Key provision 9]
-- [Key provision 10]
+                    DETAILED SUMMARY:
+                    - [Key provision 1]
+                    - [Key provision 2]
+                    - [Key provision 3]
+                    - [Key provision 4]
+                    - [Key provision 5]
+                    - [Key provision 6]
+                    - [Key provision 7]
+                    - [Key provision 8]
+                    - [Key provision 9]
+                    - [Key provision 10]
 
-IMPACT ANALYSIS:
-Citizens:
-- [Impact 1]
-- [Impact 2]
-- [Impact 3]
+                    IMPACT ANALYSIS:
+                    Citizens:
+                    - [Impact 1]
+                    - [Impact 2]
+                    - [Impact 3]
 
-Businesses:
-- [Impact 1]
-- [Impact 2]
-- [Impact 3]
+                    Businesses:
+                    - [Impact 1]
+                    - [Impact 2]
+                    - [Impact 3]
 
-Government:
-- [Impact 1]
-- [Impact 2]
-- [Impact 3]
+                    Government:
+                    - [Impact 1]
+                    - [Impact 2]
+                    - [Impact 3]
 
-BENEFICIARIES:
-- [Group 1]
-- [Group 2]
-- [Group 3]
-- [Group 4]
+                    BENEFICIARIES:
+                    - [Group 1]
+                    - [Group 2]
+                    - [Group 3]
+                    - [Group 4]
 
-AFFECTED GROUPS:
-- [Group 1]
-- [Group 2]
-- [Group 3]
-- [Group 4]
+                    AFFECTED GROUPS:
+                    - [Group 1]
+                    - [Group 2]
+                    - [Group 3]
+                    - [Group 4]
 
-POSITIVES:
-- [Positive 1]
-- [Positive 2]
-- [Positive 3]
-- [Positive 4]
+                    POSITIVES:
+                    - [Positive 1]
+                    - [Positive 2]
+                    - [Positive 3]
+                    - [Positive 4]
 
-NEGATIVES / RISKS:
-- [Risk 1]
-- [Risk 2]
-- [Risk 3]
-- [Risk 4]
+                    NEGATIVES / RISKS:
+                    - [Risk 1]
+                    - [Risk 2]
+                    - [Risk 3]
+                    - [Risk 4]
 
-Now analyze this bill text:
+                    Now analyze this bill text:
 
 {st.session_state.full_text[:12000]}
 """
@@ -425,15 +401,14 @@ Now analyze this bill text:
                     response = llm.invoke(prompt)
                     st.session_state.raw_analysis = response.content
                     st.session_state.analysis = response.content
-                    # Removed the success message "✅ Analysis complete! View results in tabs below."
+                
                 except Exception as e:
                     st.error(f"Analysis error: {str(e)}")
 
-# ========== USING SECOND CODE'S BETTER TAB DISPLAY ==========
+# ========== TAB DISPLAY ==========
 if st.session_state.analysis:
     st.markdown("---")
     
-    # Create tabs with larger names (3 tabs instead of 4, removing "Details" tab)
     sector_tab, summary_tab, impact_tab = st.tabs(["📊 SECTOR", "📝 SUMMARY", "📈 IMPACT"])
 
     with sector_tab:
@@ -441,7 +416,6 @@ if st.session_state.analysis:
         sector_content = extract_section("SECTOR", st.session_state.raw_analysis)
         
         if sector_content and "not found" not in sector_content.lower() and len(sector_content) > 5:
-            # Format as bullet points
             lines = sector_content.strip().split('\n')
             for line in lines:
                 if line.strip():
@@ -555,7 +529,7 @@ if st.session_state.analysis:
             else:
                 st.info("No affected groups listed.")
 
-# ========== USING SECOND CODE'S BETTER AI CHAT ==========
+# ==========  AI CHAT ==========
 if st.session_state.analysis and st.session_state.full_text:
     st.markdown("---")
     st.markdown('<div class="section-header">💬 Ask AI about this Bill</div>', unsafe_allow_html=True)
@@ -564,26 +538,25 @@ if st.session_state.analysis and st.session_state.full_text:
     
     if user_q:
         with st.spinner("Searching analysis..."):
-            # Special handling for proposer questions
+            # Proposer Questions
             if any(keyword in user_q.lower() for keyword in ["who proposed", "who sponsored", "proposer", "sponsor"]):
                 if st.session_state.bill_proposer:
                     answer = f"**Based on the bill text:**\n\n{st.session_state.bill_proposer}"
                 else:
                     answer = "Proposer/sponsor information not found in the bill text."
             else:
-                # Use the analysis for other questions
                 chat_prompt = f"""
-SYSTEM: 
-You are a Public Policy Analyst helping 8th-grade students. 
-Answer the question based ONLY on the provided Parliamentary Bill text.
+                SYSTEM: 
+                You are a Public Policy Analyst helping 8th-grade students. 
+                Answer the question based ONLY on the provided Parliamentary Bill text.
 
-STRICT RULES:
-1. DATA SCOPE: Use the provided text to answer questions about the bill's content, structure, or origin.
-2. LANGUAGE AWARENESS: You may identify and mention that the document contains multiple languages (like Hindi and English), but dont strain to translate it for answer or your final answer must be written in English.
-3. NO HALLUCINATION: If the information is truly not in the text, say: "I'm sorry, but the provided text does not contain an answer to that question."
-4. NO LOOPING: Provide natural sentences. Do not generate random sequences of numbers or repetitive clauses.
-5. TONE: Simple, professional, and educational for a 14-year-old.
-6. DOCUMENT OBSERVATION: You are allowed to answer questions about the document's physical properties, such as what languages are used, the bill number, or who is speaking.
+                STRICT RULES:
+                1. DATA SCOPE: Use the provided text to answer questions about the bill's content, structure, or origin.
+                2. LANGUAGE AWARENESS: You may identify and mention that the document contains multiple languages (like Hindi and English), but dont strain to translate it for answer or your final answer must be written in English.
+                3. NO HALLUCINATION: If the information is truly not in the text, say: "I'm sorry, but the provided text does not contain an answer to that question."
+                4. NO LOOPING: Provide natural sentences. Do not generate random sequences of numbers or repetitive clauses.
+                5. TONE: Simple, professional, and educational for a 14-year-old.
+                6. DOCUMENT OBSERVATION: You are allowed to answer questions about the document's physical properties, such as what languages are used, the bill number, or who is speaking.
 
 {st.session_state.raw_analysis}
 
@@ -599,7 +572,6 @@ Provide a clear, concise answer. If the information is not in the analysis, say 
             
             st.chat_message("assistant").write(answer)
 
-# Removed the entire footer section as requested
 
 
 
