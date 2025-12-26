@@ -284,7 +284,7 @@ if uploaded_file:
         
         if not is_valid:
             st.error(f"❌ {message}")
-            st.warning(""" **Please upload an actual parliamentary bill. Real bills usually contain:** """)
+            st.warning(""" **Please upload an actual parliamentary bill. ** """)
             
             # Option to force analysis
             with st.expander("⚠️ Force analysis anyway (for testing)"):
@@ -571,6 +571,7 @@ Provide a clear, concise answer. If the information is not in the analysis, say 
                     answer = f"Error generating answer: {str(e)}"
             
             st.chat_message("assistant").write(answer)
+
 
 
 
