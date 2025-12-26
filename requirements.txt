@@ -2,3 +2,5 @@ streamlit
 pypdf
 langchain-groq
 langchain-community
+groq
+reportlab
